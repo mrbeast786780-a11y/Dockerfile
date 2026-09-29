@@ -2,8 +2,8 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ज़रूरी डेस्कटॉप ऐप्स और ब्राउज़र (Firefox) इंस्टॉल करना
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -yq --no-install-recommends \
     xfce4 \
     xfce4-goodies \
     xrdp \
@@ -12,31 +12,27 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     firefox \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# RDP (Remote Desktop) की सेटिंग
 RUN mkdir -p /var/run/dbus && \
     adduser xrdp ssl-cert
 
-# लॉगिन के लिए यूज़र और पासवर्ड बनाना 
-# (आप चाहें तो admin और admin123 की जगह अपना नाम लिख सकते हैं)
 RUN useradd -m -s /bin/bash admin && \
     echo "admin:admin123" | chpasswd && \
     usermod -aG sudo admin
 
-# सिस्टम को डेस्कटॉप का रास्ता बताना
 RUN echo "xfce4-session" > /home/admin/.xsession && \
     chown admin:admin /home/admin/.xsession
 
-# सर्वर को ऑन रखने वाली स्टार्ट स्क्रिप्ट
 RUN echo '#!/bin/sh\n\
-service dbus start\n\
+mkdir -p /var/run/dbus\n\
+dbus-daemon --system\n\
 service xrdp start\n\
 tail -f /var/log/xrdp.log' > /start.sh && \
     chmod +x /start.sh
 
-# RDP के लिए पोर्ट ओपन करना
 EXPOSE 3389
 
 CMD ["/start.sh"]
